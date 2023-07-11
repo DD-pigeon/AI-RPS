@@ -1,5 +1,8 @@
 import json
 
+number_of_models = 6
+
+
 def read_data(flag):
     """
     Reading and unpacking the data from the json file
@@ -7,7 +10,7 @@ def read_data(flag):
     with open("logs.json", "r") as fp:
         data = json.load(fp)
 
-    m1, m2, m3, m4 = data["1"], data["2"], data["3"], data["4"]
+    model_data = [data[str(i)] for i in range(1, number_of_models + 1)]
 
     choices = data["Choices"]
 
@@ -17,7 +20,7 @@ def read_data(flag):
         return last
     
     if flag == 2:
-        return [m1, m2 , m3, m4]
+        return model_data
     
     if flag == 3:
         return choices
@@ -61,8 +64,16 @@ def clean_logs():
     """
     Cleans the logs file before the start of the game.
     """
-    with open("logs.json", "r") as fp:
-        data = json.load(fp)
+    try:
+        with open("logs.json", "r") as fp:
+            data = json.load(fp)
+
+    except FileNotFoundError:
+        data = {"Choices": []}
+        fp = open("logs.json", "a")
+        json.dump(data, fp, indent= 2)
+        fp.close()
+
     
     try:
         last_played = data["Choices"][-1]
@@ -70,16 +81,15 @@ def clean_logs():
         last_played = "r"
 
     new_data = {
-        "1" : [],
-        "2": [],
-        "3": [],
-        "4": [],
         "Choices": [],
         "Player": 0,
         "Computer": 0,
         "Round": 0,
         "Last": last_played
     }
+
+    for i in range(1, number_of_models + 1):
+        new_data[str(i)] = []
 
     with open("logs.json", "w") as f:
         json.dump(new_data, f, indent = 2)
@@ -114,13 +124,15 @@ def tally_scores(winner):
 
     print(f"Score:\nPlayer {data['Player']} - {data['Computer']} Computer")
 
-def find_ai_accuracy():
+def find_ai_accuracy(games):
     """
-    Finds the ending accuracy of the AI model
+    Finds the ending accuracy of the AI model, given number of games
     """
     with open("logs.json", "r") as fp:
         data = json.load(fp)
 
-    model_accuracy = round(((data["Computer"]/10) * 100), 2)
+    model_accuracy = round(((data["Computer"]/games) * 100), 2)
 
     print(f"Final model accuracy: {model_accuracy}%")
+
+    return model_accuracy / 100

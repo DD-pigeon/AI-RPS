@@ -1,6 +1,7 @@
 import json
 from helper import *
-    
+import random
+
 def winner(choice):
     """
     Defining the winner based on the choice
@@ -12,69 +13,113 @@ def winner(choice):
     else:
         return "r"
 
-def model1(choices = None):
-    """
-    Predicting the output based on the user's last round choice
-    """
-    if not choices:
-        return winner(winner(read_data(1)))
-    else:
-        return winner(read_data(1))
-    
-def model2(choices):
-    """
-    Move based on the last 3 rounds
-    """
-    try:
-        r1, r2, r3 = choices[-3], choices[-2], choices[-1]
+def models(model_number, choices = None):
 
-        if (r1 == r2) and (r2 == r3):
-            return winner(r1)
-        elif (r1 == r2):
-            return winner(r1)
-        elif (r1 == r3):
-            return winner(r2)
-        elif (r2 == r3):
-            return winner(r2)
+    if model_number == 1:
+        """
+        Model 1
+        Predicting the output based on the user's last round choice
+        """
+        if not choices:
+            return winner(winner(read_data(1)))
         else:
-            return winner(r1)
-    except:
+            return winner(read_data(1))
+    
+    if model_number == 2:
+        """
+        Model 2
+        Move based on the last 3 rounds
+        """
         try:
-            r1, r2 = choices[-2], choices[-1]
+            r1, r2, r3 = choices[-3], choices[-2], choices[-1]
 
-            if (r1 == r2):
+            if (r1 == r2) and (r2 == r3):
                 return winner(r1)
-            else:
+            elif (r1 == r2):
+                return winner(r1)
+            elif (r1 == r3):
                 return winner(r2)
+            elif (r2 == r3):
+                return winner(r2)
+            else:
+                return winner(r1)
         except:
-            return model1(choices)
+            try:
+                r1, r2 = choices[-2], choices[-1]
+
+                if (r1 == r2):
+                    return winner(r1)
+                else:
+                    return winner(r2)
+            except:
+                return models(1, choices)
         
-def model3(choices):
-    """
-    Most commonly used choice
-    """
-    rc, sc, pc = choices.count("r"), choices.count("p"), choices.count("s")
+    if model_number == 3:
+        """
+        Model 3
+        Most commonly used choice
+        """
+        rc, sc, pc = choices.count("r"), choices.count("p"), choices.count("s")
     
-    if (rc > sc and rc > pc):
-        return "p"
-    elif (sc > pc and sc > rc):
-        return "r"
-    else:
-        return "s"
+        if (rc > sc and rc > pc):
+            return "p"
+        elif (sc > pc and sc > rc):
+            return "r"
+        else:
+            return "s"
     
-def model4(choices):
-    """
-    Least commonly used choice
-    """
-    rc, sc, pc = choices.count("r"), choices.count("p"), choices.count("s")
+    if model_number == 4:
+        """
+        Model 4
+        Least commonly used choice
+        """
+        rc, sc, pc = choices.count("r"), choices.count("p"), choices.count("s")
     
-    if (rc < sc and rc < pc):
-        return "p"
-    elif (sc < pc and sc < rc):
-        return "r"
-    else:
-        return "s"
-    
+        if (rc < sc and rc < pc):
+            return "p"
+        elif (sc < pc and sc < rc):
+            return "r"
+        else:
+            return "s"
+
+    if model_number == 5:
+        """
+        Model 5
+        random
+        """
+        return random.choice(["r", "p", "s"])
+
+    if model_number == 6:
+        """
+        Model 6
+        Most common choice which succeeds the last two choices you used
+        """
+        if len(choices) < 3:
+            return random.choice(["r", "p", "s"])
+
+        else: #this could be made way more efficient, but will suffice for now, O(n)
+            last_choices_dict = {
+                'rr': {'r': 0, 'p': 0, 's': 0},
+                'rp': {'r': 0, 'p': 0, 's': 0},
+                'rs': {'r': 0, 'p': 0, 's': 0},
+                'pr': {'r': 0, 'p': 0, 's': 0},
+                'pp': {'r': 0, 'p': 0, 's': 0},
+                'ps': {'r': 0, 'p': 0, 's': 0},
+                'sr': {'r': 0, 'p': 0, 's': 0},
+                'sp': {'r': 0, 'p': 0, 's': 0},
+                'ss': {'r': 0, 'p': 0, 's': 0}
+                }
+
+        for c in range(len(choices) - 2):
+            last_2_choices = choices[c+1] + choices[c]
+            last_choices_dict[last_2_choices][choices[c+2]] += 1
+
+        current_last_2 = choices[-2] + choices[-1]
+        m6choice = max(last_choices_dict[current_last_2], key = lambda x: last_choices_dict[current_last_2][x])
+        # ^ finds key correspoding to max value in dict
+        return m6choice
+
+
 def calc_score(record):
     """
     Calculates score for the model
@@ -90,73 +135,52 @@ def calc_score(record):
         score = 0
     return score
 
+
 def choose_model():
     """
     Chooses the model based on the score
     """
-    m1, m2, m3, m4 = read_data(2)
+    datalist = read_data(2)
+    #print(datalist)  //very useful for debugging
 
-    if not m1:
-        return model1()
+    if not datalist:
+        return models(1)
     else:
-        scores = [calc_score(m1), calc_score(m2), calc_score(m3), calc_score(m4)]
+        scores = [calc_score(i) for i in datalist]
 
-        max_score = max(scores)
+        max_score = scores.index(max(scores))
         record = read_data(3)
 
-        if max_score == scores[0]:
-            return model1(record)
-        elif max_score == scores[1]:
-            return model2(record)
-        elif max_score == scores[2]:
-            return model3(record)
-        elif max_score == scores[3]:
-            return model4(record)
+        return models(max_score + 1, record)
+
 
 def rate_all_models(user):
     """
     Rates all the models based on the output it predicted.
     """
     data = read_data(3)
-    m1_choice, m2_choice, m3_choice, m4_choice = model1(data), model2(data), model3(data), model4(data)
-    wm1, wm2, wm3, wm4 = declare_winner(user, m1_choice), declare_winner(user, m2_choice), declare_winner(user, m3_choice), declare_winner(user, m4_choice)
-    data1, data2, data3, data4 = read_data(2)
+    model_choices = [models(i, data) for i in range(1, number_of_models + 1)]
+    winners = [declare_winner(user, model_choices[i - 1]) for i in range(1, number_of_models + 1)]
+    datalist = read_data(2)
 
-    if wm1 == "Player":
-        data1.append(-1)
-    elif wm1 == "Computer":
-        data1.append(1)
-    elif wm1 == "Draw":
-        data1.append(0)
-
-    if wm2 == "Player":
-        data2.append(-1)
-    elif wm2 == "Computer":
-        data2.append(1)
-    elif wm2 == "Draw":
-        data2.append(0)
-
-    if wm3 == "Player":
-        data3.append(-1)
-    elif wm3 == "Computer":
-        data3.append(1)
-    elif wm3 == "Draw":
-        data3.append(0)
-
-    if wm4 == "Player":
-        data4.append(-1)
-    elif wm4 == "Computer":
-        data4.append(1)
-    elif wm4 == "Draw":
-        data4.append(0)
+    for i in range(len(winners)):
+        if winners[i] == "Player":
+            datalist[i].append(-1)
+        if winners[i] == "Computer":
+            datalist[i].append(1)
+        if winners[i] == "Draw":
+            datalist[i].append(0)
 
     with open("logs.json", "r") as fp:
         data = json.load(fp)
 
     if data["Round"] == 1:
-        data["1"], data["2"], data["3"], data["4"] = data1, [0], [0], [0]
+        data["1"] = datalist[0]
+        for i in range(2, number_of_models + 1):
+            data[str(i)] = [0]
     else:
-        data["1"], data["2"], data["3"], data["4"] = data1, data2, data3, data4
+        for i in range(len(datalist)):
+            data[str(i+1)] = list(datalist[i])
 
     data["Choices"].append(user)
     data["Last"] = user
@@ -164,3 +188,5 @@ def rate_all_models(user):
 
     with open("logs.json", "w") as f:
         json.dump(data, f, indent = 2)
+
+
